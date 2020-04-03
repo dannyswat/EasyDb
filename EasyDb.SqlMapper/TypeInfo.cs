@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EasyDb.SqlMapper
 {
-    public class TypeInfo
+    internal class TypeInfo
     {
         public PropertyInfo Property { get; set; }
 

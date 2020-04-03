@@ -9,7 +9,7 @@ using System.Text;
 namespace EasyDb.SqlMapper
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
-    public static class SqlQueryMapper
+    public static class SqlConnectionExtensions
     {
         public static IEnumerable<T> Query<T>(this SqlConnection connection, string sql, object parameters)
         {

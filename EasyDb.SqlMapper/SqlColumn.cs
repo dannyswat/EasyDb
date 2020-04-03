@@ -4,7 +4,7 @@ using System.Text;
 
 namespace EasyDb.SqlMapper
 {
-	public class SqlColumn
+	internal class SqlColumn
 	{
 		public string Name { get; set; }
 
