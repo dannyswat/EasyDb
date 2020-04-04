@@ -1,6 +1,7 @@
 ﻿using EasyDb.SqlBuilder.Components;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace EasyDb.SqlBuilder
@@ -8,6 +9,8 @@ namespace EasyDb.SqlBuilder
     public class MsSqlGenerator : ISqlGenerator
     {
         StringBuilder sql = new StringBuilder();
+
+        public string DefaultTableSchema { get; set; } = "dbo";
 
         public static string TranslateComparisonOperator(ComparisonOperator comparisonOperator)
         {
@@ -47,6 +50,23 @@ namespace EasyDb.SqlBuilder
                     return "NOT LIKE";
                 default:
                     throw new NotImplementedException($"Operator {Enum.GetName(typeof(ComparisonOperator), comparisonOperator)} is not supported yet");
+            }
+        }
+
+        public static string TranslateJoinType(TableJoinType joinType)
+        {
+            switch (joinType)
+            {
+                case TableJoinType.LeftJoin:
+                    return "LEFT JOIN";
+                case TableJoinType.InnerJoin:
+                    return "INNER JOIN";
+                case TableJoinType.RightJoin:
+                    return "RIGHT JOIN";
+                case TableJoinType.FullJoin:
+                    return "FULL JOIN";
+                default:
+                    throw new NotImplementedException($"Unsupported join type {Enum.GetName(typeof(TableJoinType), joinType)}");
             }
         }
 
@@ -119,12 +139,41 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(CaseField component)
         {
-            throw new NotImplementedException();
+            sql.Append("(CASE ");
+            component.Field.Accept(this);
+            foreach (var fieldCase in component.When)
+            {
+                sql.Append(" WHEN ");
+                fieldCase.Key.Accept(this);
+                sql.Append(" THEN ");
+                fieldCase.Value.Accept(this);
+            }
+
+            if (component.Else != null)
+            {
+                sql.Append(" ELSE ");
+                component.Else.Accept(this);
+            }
+            sql.Append(" END)");
         }
 
         public void Visit(CaseWhenField component)
         {
-            throw new NotImplementedException();
+            sql.Append("(CASE");
+            foreach (var conditionValue in component.Conditions)
+            {
+                sql.Append(" WHEN ");
+                conditionValue.Key.Accept(this);
+                sql.Append(" THEN ");
+                conditionValue.Value.Accept(this);
+            }
+
+            if (component.Else != null)
+            {
+                sql.Append(" ELSE ");
+                component.Else.Accept(this);
+            }
+            sql.Append(" END)");
         }
 
         public void Visit(RowNumberField component)
@@ -134,32 +183,49 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(SelectField component)
         {
-            throw new NotImplementedException();
+            component.Field.Accept(this);
+            if (!string.IsNullOrEmpty(component.Alias))
+                sql.Append($" AS [{component.Alias}]");
         }
 
         public void Visit(SortField component)
         {
-            throw new NotImplementedException();
+            component.Field.Accept(this);
+            sql.Append(component.Descending ? " DESC" : " ASC");
         }
 
         public void Visit(Table component)
         {
-            throw new NotImplementedException();
+            sql.Append($"[{component.Schema ?? DefaultTableSchema}].[{component.Name}]");
+            if (!string.IsNullOrEmpty(component.Alias))
+                sql.Append(" AS [" + component.Alias + "]");
         }
 
         public void Visit(TableJoin component)
         {
-            throw new NotImplementedException();
+            sql.Append(" CROSS JOIN ");
+            component.ForeignTable.Accept(this);
         }
 
         public void Visit(TableApply component)
         {
-            throw new NotImplementedException();
+            sql.Append($" {(component.JoinType == TableApplyType.CrossApply ? "CROSS APPLY" : "OUTER APPLY")} (");
+            component.ForeignTable.Accept(this);
+            sql.Append($") AS [{((ISqlTable)component.ForeignTable).Alias}]");
         }
 
         public void Visit(TableRelation component)
         {
-            throw new NotImplementedException();
+            sql.Append(" " + TranslateJoinType(component.JoinType) + " ");
+            component.ForeignTable.Accept(this);
+            sql.Append(" ON ");
+            component.LocalForeignKeys.First().Accept(this);
+            foreach (var key in component.LocalForeignKeys.Skip(1))
+            {
+                sql.Append(" AND ");
+                key.Accept(this);
+            }
+
         }
 
         public void Visit(Variable component)
@@ -169,22 +235,29 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(SqlExpression component)
         {
-            throw new NotImplementedException();
+            sql.Append(component.Expression);
         }
 
         public void Visit(DbField component)
         {
-            sql.Append($"[{component.TableName}].[{component.FieldName}]");
+            if (!string.IsNullOrEmpty(component.TableName))
+                sql.Append($"[{component.TableName}].[{component.FieldName}]");
+            else
+                sql.Append($"[{component.FieldName}]");
         }
 
         public void Visit(StringField component)
         {
-            throw new NotImplementedException();
+            sql.Append("N'" + component.Value + "'");
         }
 
         public void Visit(IsNullField component)
         {
-            throw new NotImplementedException();
+            sql.Append("ISNULL(");
+            component.Field.Accept(this);
+            sql.Append(", ");
+            component.WhenNull.Accept(this);
+            sql.Append(")");
         }
 
         public void Visit(CommonTableExpression component)
@@ -194,7 +267,9 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(LocalForeignKey component)
         {
-            throw new NotImplementedException();
+            component.LocalKey.Accept(this);
+            sql.Append(" = ");
+            component.ForeignKey.Accept(this);
         }
 
         public void Visit(Query component)
@@ -262,6 +337,16 @@ namespace EasyDb.SqlBuilder
                     component.OrderBy[i].Accept(this);
                 }
             }
+        }
+
+        public void Visit(CompositeQuery component)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(UnionQuery component)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -126,5 +126,15 @@ namespace EasyDb.SqlBuilder.SqlGenerators
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(CompositeQuery component)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(UnionQuery component)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

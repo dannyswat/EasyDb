@@ -30,5 +30,7 @@ namespace EasyDb.SqlBuilder
         void Visit(CommonTableExpression component);
         void Visit(LocalForeignKey component);
         void Visit(Query component);
+        void Visit(CompositeQuery component);
+        void Visit(UnionQuery component);
     }
 }

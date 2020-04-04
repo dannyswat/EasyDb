@@ -6,6 +6,19 @@ namespace EasyDb.SqlBuilder.Components
 {
     public class DbField : ISqlField
     {
+        public DbField() { }
+
+        public DbField(string fieldName)
+        {
+            FieldName = fieldName;
+        }
+
+        public DbField(string fieldName, string tableName)
+        {
+            FieldName = fieldName;
+            TableName = tableName;
+        }
+
         public string FieldName { get; set; }
 
         public string TableName { get; set; }

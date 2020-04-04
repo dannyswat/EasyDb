@@ -6,6 +6,20 @@ namespace EasyDb.SqlBuilder.Components
 {
     public class SelectField : ISqlComponent
     {
+        public SelectField() { }
+
+        public SelectField(ISqlField field, string alias = null)
+        {
+            Field = field;
+            Alias = alias;
+        }
+
+        public SelectField(string dbField, string alias = null)
+        {
+            Field = new DbField(dbField);
+            Alias = alias;
+        }
+
         public ISqlField Field { get; set; }
 
         public string Alias { get; set; }

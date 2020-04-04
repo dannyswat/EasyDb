@@ -4,14 +4,13 @@ using System.Text;
 
 namespace EasyDb.SqlBuilder.Components
 {
-    public class Variable : ISqlField
+    public class UnionQuery : ISqlTable
     {
-        public Variable(string name)
-        {
-            Name = name;
-        }
+        public bool UnionAll { get; set; }
 
-        public string Name { get; set; }
+        public Query Query { get; set; }
+
+        string ISqlTable.Alias { get; set; }
 
         public void Accept(ISqlComponentVisitor visitor)
         {
