@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -11,36 +12,40 @@ namespace EasyDb.SqlMapper
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
     public static class SqlConnectionExtensions
     {
-        public static IEnumerable<T> Query<T>(this SqlConnection connection, string sql, object parameters)
+        public static IEnumerable<T> Query<T>(this IDbConnection connection, string sql, object parameters)
         {
-            SqlCommand cmd = new SqlCommand(sql, connection);
+            IDbCommand cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
 
             cmd.AddParametersToCommand(parameters);
 
             return ReadRows<T>(cmd);
         }
 
-        public static T Scalar<T>(this SqlConnection connection, string sql, object parameters)
+        public static T Scalar<T>(this IDbConnection connection, string sql, object parameters)
         {
-            SqlCommand cmd = new SqlCommand(sql, connection);
+            IDbCommand cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
 
             cmd.AddParametersToCommand(parameters);
 
             return ReadScalar<T>(cmd);
         }
 
-        public static int Execute(this SqlConnection connection, string sql, object parameters)
+        public static int Execute(this IDbConnection connection, string sql, object parameters)
         {
-            SqlCommand cmd = new SqlCommand(sql, connection);
+            IDbCommand cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
 
             cmd.AddParametersToCommand(parameters);
 
             return Execute(cmd);
         }
 
-        public static int StoredProcedure(this SqlConnection connection, string storedProcName, object parameters)
+        public static int StoredProcedure(this IDbConnection connection, string storedProcName, object parameters)
         {
-            SqlCommand cmd = new SqlCommand(storedProcName, connection);
+            IDbCommand cmd = connection.CreateCommand();
+            cmd.CommandText = storedProcName;
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.AddParametersToCommand(parameters, allowArray: false);
@@ -48,9 +53,10 @@ namespace EasyDb.SqlMapper
             return Execute(cmd);
         }
 
-        public static IEnumerable<T> StoredProcedure<T>(this SqlConnection connection, string storedProcName, object parameters)
+        public static IEnumerable<T> StoredProcedure<T>(this IDbConnection connection, string storedProcName, object parameters)
         {
-            SqlCommand cmd = new SqlCommand(storedProcName, connection);
+            IDbCommand cmd = connection.CreateCommand();
+            cmd.CommandText = storedProcName;
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.AddParametersToCommand(parameters, allowArray: false);
@@ -63,7 +69,7 @@ namespace EasyDb.SqlMapper
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="parameters"></param>
-        public static void AddParametersToCommand(this SqlCommand cmd, object parameters, bool allowArray = true)
+        public static void AddParametersToCommand(this IDbCommand cmd, object parameters, bool allowArray = true)
         {
             if (parameters == null) return;
 
@@ -78,15 +84,18 @@ namespace EasyDb.SqlMapper
                         cmd.CommandText = cmd.CommandText.Replace("@" + prop.Name, "(" + string.Join(", ", Enumerable.Range(0, array.Length).Select(i => "@" + prop.Name + i.ToString())) + ")");
 
                         for (int i = 0; i < array.Length; i++)
-                            cmd.Parameters.AddWithValue("@" + prop.Name + i.ToString(), array[i]);
+                            cmd.AddParameterWithValue("@" + prop.Name+ i.ToString(), array[i]);
                     }
                 }
                 else
-                    cmd.Parameters.AddWithValue(prop.Name, prop.GetValue(parameters));
+                {
+                    
+                    cmd.AddParameterWithValue("@" + prop.Name, prop.GetValue(parameters));
+                }
             }
         }
 
-        static IEnumerable<T> ReadRows<T>(SqlCommand cmd)
+        static IEnumerable<T> ReadRows<T>(IDbCommand cmd)
         {
             var state = cmd.Connection.State;
 
@@ -132,8 +141,35 @@ namespace EasyDb.SqlMapper
                                         tempObj = newObj;
                                         tempName += "." + layers[n + 1];
                                     }
-
-                                    prop.Property.SetValue(tempObj, reader[col]);
+                                    switch (Type.GetTypeCode(prop.Property.PropertyType))
+                                    {
+                                        case TypeCode.Boolean:
+                                            prop.Property.SetValue(tempObj, reader.GetBoolean(i));
+                                            break;
+                                        case TypeCode.Int32:
+                                            prop.Property.SetValue(tempObj, reader.GetInt32(i));
+                                            break;
+                                        case TypeCode.Int64:
+                                            prop.Property.SetValue(tempObj, reader.GetInt64(i));
+                                            break;
+                                        case TypeCode.DateTime:
+                                            prop.Property.SetValue(tempObj, reader.GetDateTime(i));
+                                            break;
+                                        case TypeCode.String:
+                                            prop.Property.SetValue(tempObj, reader.GetString(i));
+                                            break;
+                                        case TypeCode.Byte:
+                                            prop.Property.SetValue(tempObj, reader.GetByte(i));
+                                            break;
+                                        case TypeCode.Decimal:
+                                            prop.Property.SetValue(tempObj, reader.GetDecimal(i));
+                                            break;
+                                        case TypeCode.Object:
+                                        default:
+                                            prop.Property.SetValue(tempObj, reader.GetValue(i));
+                                            break;
+                                    }
+                                    
                                 }
                             }
                         }
@@ -154,7 +190,7 @@ namespace EasyDb.SqlMapper
             return list;
         }
 
-        static int Execute(SqlCommand cmd)
+        static int Execute(IDbCommand cmd)
         {
             var state = cmd.Connection.State;
 
@@ -175,7 +211,7 @@ namespace EasyDb.SqlMapper
             }
         }
 
-        static T ReadScalar<T>(SqlCommand cmd)
+        static T ReadScalar<T>(IDbCommand cmd)
         {
             var state = cmd.Connection.State;
 
@@ -199,7 +235,7 @@ namespace EasyDb.SqlMapper
             }
         }
 
-        static void OpenConnection(SqlConnection conn)
+        static void OpenConnection(IDbConnection conn)
         {
             if (conn.State == ConnectionState.Broken)
                 conn.Close();
@@ -217,6 +253,14 @@ namespace EasyDb.SqlMapper
             {
                 throw new Exception(message, e);
             }
+        }
+
+        static void AddParameterWithValue(this IDbCommand cmd, string name, object value)
+        {
+            IDbDataParameter param = cmd.CreateParameter();
+            param.ParameterName = name;
+            param.Value = value;
+            cmd.Parameters.Add(param);
         }
     }
 }
