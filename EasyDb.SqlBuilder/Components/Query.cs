@@ -8,6 +8,8 @@ namespace EasyDb.SqlBuilder.Components
     {
         public List<SelectField> Select { get; set; } = new List<SelectField>();
 
+        public bool SelectDistinct { get; set; } = false;
+
         public ISqlTable From { get; set; }
 
         public List<TableJoin> JoinTables { get; set; } = new List<TableJoin>();

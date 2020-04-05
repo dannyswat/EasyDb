@@ -70,6 +70,31 @@ namespace EasyDb.SqlBuilder
             }
         }
 
+        public static string GetAggregateFunctionName(AggregateFunction aggregateFunction)
+        {
+            switch (aggregateFunction)
+            {
+                case AggregateFunction.Count:
+                    return "COUNT";
+                case AggregateFunction.CountBig:
+                    return "COUNT_BIG";
+                case AggregateFunction.Average:
+                    return "AVG";
+                case AggregateFunction.Max:
+                    return "MAX";
+                case AggregateFunction.Min:
+                    return "MIN";
+                case AggregateFunction.StandardDeviation:
+                    return "STD";
+                case AggregateFunction.Sum:
+                    return "SUM";
+                case AggregateFunction.Variance:
+                    return "VAR";
+                default:
+                    throw new NotImplementedException($"Unsupported aggregate function {Enum.GetName(typeof(AggregateFunction), aggregateFunction)}");
+            }
+        }
+
         public string GenerateSql()
         {
             return sql.ToString();
@@ -77,7 +102,34 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(AggregateField component)
         {
-            throw new NotImplementedException();
+            sql.Append($"{GetAggregateFunctionName(component.Function)}({(component.IsDistinct ? "DISTINCT " : "")}");
+            component.Field.Accept(this);
+            sql.Append(")");
+            if (component.PartitionBy.Count + component.OrderBy.Count > 0)
+            {
+                sql.Append(" OVER (");
+                if (component.PartitionBy.Count > 0)
+                {
+                    sql.Append("PARTITION BY ");
+                    component.PartitionBy.First().Accept(this);
+                    foreach (var item in component.PartitionBy.Skip(1))
+                    {
+                        sql.Append(", ");
+                        item.Accept(this);
+                    }
+                }
+                if (component.OrderBy.Count > 0)
+                {
+                    sql.Append((component.PartitionBy.Count > 0 ? " " : "") + "ORDER BY ");
+                    component.OrderBy.First().Accept(this);
+                    foreach (var item in component.OrderBy.Skip(1))
+                    {
+                        sql.Append(", ");
+                        item.Accept(this);
+                    }
+                }
+                sql.Append(")");
+            }
         }
 
         public void Visit(ArrayField component)
@@ -178,7 +230,32 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(RowNumberField component)
         {
-            throw new NotImplementedException();
+            sql.Append("ROW_NUMBER()");
+            if (component.PartitionBy.Count + component.OrderBy.Count > 0)
+            {
+                sql.Append(" OVER (");
+                if (component.PartitionBy.Count > 0)
+                {
+                    sql.Append("PARTITION BY ");
+                    component.PartitionBy.First().Accept(this);
+                    foreach (var item in component.PartitionBy.Skip(1))
+                    {
+                        sql.Append(", ");
+                        item.Accept(this);
+                    }
+                }
+                if (component.OrderBy.Count > 0)
+                {
+                    sql.Append((component.PartitionBy.Count > 0 ? " " : "") + "ORDER BY ");
+                    component.OrderBy.First().Accept(this);
+                    foreach (var item in component.OrderBy.Skip(1))
+                    {
+                        sql.Append(", ");
+                        item.Accept(this);
+                    }
+                }
+                sql.Append(")");
+            }
         }
 
         public void Visit(SelectField component)
@@ -196,7 +273,13 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(Table component)
         {
-            sql.Append($"[{component.Schema ?? DefaultTableSchema}].[{component.Name}]");
+            string schema = component.Schema ?? DefaultTableSchema;
+
+            if (!string.IsNullOrEmpty(schema))
+                sql.Append($"[{schema}].[{component.Name}]");
+            else
+                sql.Append($"[{component.Name}]");
+
             if (!string.IsNullOrEmpty(component.Alias))
                 sql.Append(" AS [" + component.Alias + "]");
         }
@@ -276,6 +359,9 @@ namespace EasyDb.SqlBuilder
         {
 
             sql.Append("SELECT ");
+
+            if (component.SelectDistinct)
+                sql.Append("DISTINCT ");
 
             if (component.Select.Count == 0)
             {

@@ -8,6 +8,8 @@ namespace EasyDb.SqlBuilder.Components
     {
         public AggregateFunction Function { get; set; }
 
+        public ISqlField Field { get; set; }
+
         public bool IsDistinct { get; set; }
 
         public List<SortField> PartitionBy { get; set; }

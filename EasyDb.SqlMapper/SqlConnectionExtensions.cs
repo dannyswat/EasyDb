@@ -75,7 +75,7 @@ namespace EasyDb.SqlMapper
 
             foreach (var prop in parameters.GetType().GetProperties())
             {
-                if (TypeMapping.IsEnumerableType(prop.PropertyType))
+                if (prop.PropertyType != typeof(string) && TypeMapping.IsEnumerableType(prop.PropertyType))
                 {
                     if (allowArray)
                     {
@@ -93,6 +93,8 @@ namespace EasyDb.SqlMapper
                     cmd.AddParameterWithValue("@" + prop.Name, prop.GetValue(parameters));
                 }
             }
+
+            cmd.Prepare();
         }
 
         static IEnumerable<T> ReadRows<T>(IDbCommand cmd)
