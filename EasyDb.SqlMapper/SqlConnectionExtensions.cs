@@ -9,7 +9,7 @@ using System.Text;
 
 namespace EasyDb.SqlMapper
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Parameters are safe.")]
     public static class SqlConnectionExtensions
     {
         public static IEnumerable<T> Query<T>(this IDbConnection connection, string sql, object parameters)
@@ -64,12 +64,7 @@ namespace EasyDb.SqlMapper
             return ReadRows<T>(cmd);
         }
 
-        /// <summary>
-        /// Add parameters by anonymous object supporting enumerable
-        /// </summary>
-        /// <param name="cmd"></param>
-        /// <param name="parameters"></param>
-        public static void AddParametersToCommand(this IDbCommand cmd, object parameters, bool allowArray = true)
+        internal static void AddParametersToCommand(this IDbCommand cmd, object parameters, bool allowArray = true)
         {
             if (parameters == null) return;
 
