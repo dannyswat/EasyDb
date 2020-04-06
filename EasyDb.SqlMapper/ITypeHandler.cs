@@ -7,7 +7,7 @@ namespace EasyDb.SqlMapper
 {
     public interface ITypeHandler
     {
-        void SetParameterValue(IDbDataParameter param, object value);
+        object SetParameterValue(object value);
 
         object ReadValue(object dbValue);
     }

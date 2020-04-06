@@ -12,6 +12,8 @@ namespace EasyDb.SqlMapper
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Parameters are safe.")]
     public static class SqlConnectionExtensions
     {
+        internal static TypeHandlerManager TypeHandler = new TypeHandlerManager();
+
         public static IEnumerable<T> Query<T>(this IDbConnection connection, string sql, object parameters)
         {
             IDbCommand cmd = connection.CreateCommand();
@@ -79,13 +81,16 @@ namespace EasyDb.SqlMapper
                         cmd.CommandText = cmd.CommandText.Replace("@" + prop.Name, "(" + string.Join(", ", Enumerable.Range(0, array.Length).Select(i => "@" + prop.Name + i.ToString())) + ")");
 
                         for (int i = 0; i < array.Length; i++)
-                            cmd.AddParameterWithValue("@" + prop.Name+ i.ToString(), array[i]);
+                            cmd.AddParameterWithValue("@" + prop.Name + i.ToString(), array[i]);
                     }
                 }
                 else
                 {
-                    
-                    cmd.AddParameterWithValue("@" + prop.Name, prop.GetValue(parameters));
+                    var customHandler = TypeHandler.FindHandler(prop.PropertyType);
+                    if (customHandler != null)
+                        cmd.AddParameterWithValue("@" + prop.Name, customHandler.Handler.SetParameterValue(prop.GetValue(parameters)));
+                    else
+                        cmd.AddParameterWithValue("@" + prop.Name, prop.GetValue(parameters));
                 }
             }
 
@@ -138,35 +143,69 @@ namespace EasyDb.SqlMapper
                                         tempObj = newObj;
                                         tempName += "." + layers[n + 1];
                                     }
-                                    switch (Type.GetTypeCode(prop.Property.PropertyType))
+
+                                    var customHandler = TypeHandler.FindHandler(prop.Property.PropertyType);
+                                    if (customHandler != null)
                                     {
-                                        case TypeCode.Boolean:
-                                            prop.Property.SetValue(tempObj, reader.GetBoolean(i));
-                                            break;
-                                        case TypeCode.Int32:
-                                            prop.Property.SetValue(tempObj, reader.GetInt32(i));
-                                            break;
-                                        case TypeCode.Int64:
-                                            prop.Property.SetValue(tempObj, reader.GetInt64(i));
-                                            break;
-                                        case TypeCode.DateTime:
-                                            prop.Property.SetValue(tempObj, reader.GetDateTime(i));
-                                            break;
-                                        case TypeCode.String:
-                                            prop.Property.SetValue(tempObj, reader.GetString(i));
-                                            break;
-                                        case TypeCode.Byte:
-                                            prop.Property.SetValue(tempObj, reader.GetByte(i));
-                                            break;
-                                        case TypeCode.Decimal:
-                                            prop.Property.SetValue(tempObj, reader.GetDecimal(i));
-                                            break;
-                                        case TypeCode.Object:
-                                        default:
-                                            prop.Property.SetValue(tempObj, reader.GetValue(i));
-                                            break;
+                                        switch (Type.GetTypeCode(customHandler.DbType))
+                                        {
+                                            case TypeCode.Boolean:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetBoolean(i)));
+                                                break;
+                                            case TypeCode.Int32:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetInt32(i)));
+                                                break;
+                                            case TypeCode.Int64:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetInt64(i)));
+                                                break;
+                                            case TypeCode.DateTime:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetDateTime(i)));
+                                                break;
+                                            case TypeCode.String:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetString(i)));
+                                                break;
+                                            case TypeCode.Byte:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetByte(i)));
+                                                break;
+                                            case TypeCode.Decimal:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetDecimal(i)));
+                                                break;
+                                            case TypeCode.Object:
+                                            default:
+                                                prop.Property.SetValue(tempObj, customHandler.Handler.ReadValue(reader.GetValue(i)));
+                                                break;
+                                        }
                                     }
-                                    
+                                    else
+                                        switch (Type.GetTypeCode(prop.Property.PropertyType))
+                                        {
+                                            case TypeCode.Boolean:
+                                                prop.Property.SetValue(tempObj, reader.GetBoolean(i));
+                                                break;
+                                            case TypeCode.Int32:
+                                                prop.Property.SetValue(tempObj, reader.GetInt32(i));
+                                                break;
+                                            case TypeCode.Int64:
+                                                prop.Property.SetValue(tempObj, reader.GetInt64(i));
+                                                break;
+                                            case TypeCode.DateTime:
+                                                prop.Property.SetValue(tempObj, reader.GetDateTime(i));
+                                                break;
+                                            case TypeCode.String:
+                                                prop.Property.SetValue(tempObj, reader.GetString(i));
+                                                break;
+                                            case TypeCode.Byte:
+                                                prop.Property.SetValue(tempObj, reader.GetByte(i));
+                                                break;
+                                            case TypeCode.Decimal:
+                                                prop.Property.SetValue(tempObj, reader.GetDecimal(i));
+                                                break;
+                                            case TypeCode.Object:
+                                            default:
+                                                prop.Property.SetValue(tempObj, reader.GetValue(i));
+                                                break;
+                                        }
+
                                 }
                             }
                         }

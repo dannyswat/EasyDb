@@ -26,9 +26,9 @@ namespace EasyDb.SqlMapper
             return ReadFromDatabase((TDb)dbValue);
         }
 
-        void ITypeHandler.SetParameterValue(IDbDataParameter param, object value)
+        object ITypeHandler.SetParameterValue(object value)
         {
-            param.Value = WriteToDatabase((TClr)value);
+            return WriteToDatabase((TClr)value);
         }
     }
 }
