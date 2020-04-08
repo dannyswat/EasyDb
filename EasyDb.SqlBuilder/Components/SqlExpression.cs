@@ -6,6 +6,11 @@ namespace EasyDb.SqlBuilder.Components
 {
     public class SqlExpression : ISqlField
     {
+        public SqlExpression(string expr)
+        {
+            Expression = expr;
+        }
+
         public string Expression { get; set; }
         public void Accept(ISqlComponentVisitor visitor)
         {

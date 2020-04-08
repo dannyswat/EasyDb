@@ -136,5 +136,15 @@ namespace EasyDb.SqlBuilder.SqlGenerators
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(NumberField component)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(DateField component)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

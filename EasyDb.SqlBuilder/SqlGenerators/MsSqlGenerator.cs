@@ -434,5 +434,15 @@ namespace EasyDb.SqlBuilder
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(NumberField component)
+        {
+            sql.Append(component.Value);
+        }
+
+        public void Visit(DateField component)
+        {
+            sql.Append("'" + component.Value.ToString(component.HasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd") + "'");
+        }
     }
 }

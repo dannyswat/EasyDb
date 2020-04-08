@@ -26,6 +26,8 @@ namespace EasyDb.SqlBuilder
         void Visit(SqlExpression component);
         void Visit(DbField component);
         void Visit(StringField component);
+        void Visit(NumberField component);
+        void Visit(DateField component);
         void Visit(IsNullField component);
         void Visit(CommonTableExpression component);
         void Visit(LocalForeignKey component);
