@@ -12,6 +12,12 @@ namespace EasyDb.SqlBuilder.Components
             Condition = condition;
         }
 
+        public MoreCondition(LogicalOperator logicalOperator, ISqlField field1, ComparisonOperator oper, ISqlField field2 = null)
+        {
+            LogicalOperator = logicalOperator;
+            Condition = new Condition(field1, oper, field2);
+        }
+
         public LogicalOperator LogicalOperator { get; set; }
 
         public ISqlCondition Condition { get; set; }

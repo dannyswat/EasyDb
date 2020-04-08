@@ -39,7 +39,7 @@ namespace EasyDb.UnitTest
         }
 
         [TestMethod]
-        public void ConditionsTest()
+        public void SimpleConditionsTest()
         {
             Query query = new Query();
             query.Select.Add(new SelectField("ID"));
@@ -52,6 +52,26 @@ namespace EasyDb.UnitTest
             ISqlGenerator sqlGenerator = new MsSqlGenerator();
             query.Accept(sqlGenerator);
             Assert.AreEqual("SELECT [ID], [Name] FROM [dbo].[Products] WHERE ([Name] = @name AND [ID] < 5) ORDER BY [Name] DESC", sqlGenerator.GenerateSql());
+        }
+
+        [TestMethod]
+        public void NestedConditionsTest()
+        {
+            Query query = new Query();
+            query.Select.Add(new SelectField("ID"));
+            query.Select.Add(new SelectField("Name"));
+            query.From = new Table("Products");
+            query.Where = 
+                new ConditionClause(new DbField("Name"), ComparisonOperator.Equal, new Variable("name"))
+                .And(
+                    new ConditionClause(new DbField("ID"), ComparisonOperator.LessThan, new NumberField(5))
+                    .Or(new DbField("ID"), ComparisonOperator.GreaterThan, new NumberField(10))
+                );
+            query.OrderBy.Add(new SortField("Name", true));
+
+            ISqlGenerator sqlGenerator = new MsSqlGenerator();
+            query.Accept(sqlGenerator);
+            Assert.AreEqual("SELECT [ID], [Name] FROM [dbo].[Products] WHERE ([Name] = @name AND ([ID] < 5 OR [ID] > 10)) ORDER BY [Name] DESC", sqlGenerator.GenerateSql());
         }
     }
 }
