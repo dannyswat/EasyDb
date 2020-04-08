@@ -432,7 +432,9 @@ namespace EasyDb.SqlBuilder
 
         public void Visit(UnionQuery component)
         {
-            throw new NotImplementedException();
+            sql.Append(Environment.NewLine + (component.UnionAll ? "UNION ALL (" : "UNION ("));
+            component.Query.Accept(this);
+            sql.Append(")");
         }
 
         public void Visit(NumberField component)
