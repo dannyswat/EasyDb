@@ -23,10 +23,11 @@ namespace EasyDb.UnitTest
             conn.Execute(@"CREATE TABLE Products (
 ID INTEGER PRIMARY KEY,
 Name TEXT NOT NULL,
+Json TEXT NULL,
 Desc TEXT NOT NULL)", null);
 
-            conn.Execute(@"INSERT INTO Products (ID, Name,Desc)
-Values (1, 'Test', 'Hello')", null);
+            conn.Execute(@"INSERT INTO Products (ID, Name,Json,Desc)
+Values (1, 'Test', '{""LastName"":""ABC"", ""FirstName"":""DEF""}', 'Hello')", null);
 
             conn.Execute(@"INSERT INTO Products (ID, Name,Desc)
 Values (2, 'Test 2', 'Hello too')", null);
@@ -82,13 +83,39 @@ Values (2, 'Test 2', 'Hello too')", null);
             conn.Close();
         }
 
+        [TestMethod]
+        public void BasicTypeConverterTest()
+        {
+            TypeHandlerManager.Add(new SqlMapper.TypeHandlers.JsonTypeHandler<JsonObject>());
+
+            SimpleObject[] result;
+
+            result = conn.Query<SimpleObject>("SELECT ID, Name, Json FROM Products", null).ToArray();
+
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("Test", result[0].Name);
+            Assert.IsNotNull(result[0].Json);
+            Assert.AreEqual(result[0].Json.LastName, "ABC");
+
+            conn.Close();
+        }
+
         class SimpleObject
         {
             public int ID { get; set; }
 
             public string Name { get; set; }
 
+            public JsonObject Json { get; set; }
+
             public SubObject Detail { get; set; }
+        }
+
+        class JsonObject
+        {
+            public string LastName { get; set; }
+
+            public string FirstName { get; set; }
         }
 
         class SubObject

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace EasyDb.SqlMapper
 {
-    internal class TypeHandlerManager
+    public class TypeHandlerManager
     {
         Dictionary<Type, HandlerInfo> handlers = new Dictionary<Type, HandlerInfo>();
 
