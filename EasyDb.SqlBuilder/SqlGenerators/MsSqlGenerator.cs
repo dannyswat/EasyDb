@@ -360,6 +360,9 @@ namespace EasyDb.SqlBuilder
 
             sql.Append("SELECT ");
 
+            if ((component.Offset ?? 0) == 0 && component.PageSize.HasValue)
+                sql.Append($"TOP {component.PageSize} ");
+
             if (component.SelectDistinct)
                 sql.Append("DISTINCT ");
 
@@ -423,11 +426,28 @@ namespace EasyDb.SqlBuilder
                     component.OrderBy[i].Accept(this);
                 }
             }
+
+            if ((component.Offset ?? 0) > 0)
+            {
+                sql.Append($" OFFSET {component.Offset} ROWS");
+
+                if (component.PageSize.HasValue)
+                    sql.Append($" FETCH NEXT {component.PageSize} ROWS ONLY");
+            }
         }
 
         public void Visit(CompositeQuery component)
         {
-            throw new NotImplementedException();
+            foreach (var expr in component.CommonTableExpression)
+            {
+                expr.Accept(this);
+            }
+            component.Query.Accept(this);
+
+            foreach (var uQuery in component.UnionQueries)
+            {
+                uQuery.Accept(this);
+            }
         }
 
         public void Visit(UnionQuery component)
