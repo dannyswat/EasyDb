@@ -8,9 +8,10 @@ namespace EasyDb.SqlBuilder.Components
     {
         public Table() { }
 
-        public Table(string table, string alias = null)
+        public Table(string table, string alias = null, string schema = null)
         {
             Name = table;
+            Schema = schema;
             Alias = alias;
         }
 
