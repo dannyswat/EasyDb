@@ -67,5 +67,18 @@ namespace EasyDb.UnitTest
                 Assert.AreEqual(99, products.First().Price?.Amount);
             }
         }
+
+        [TestMethod]
+        public void TestQueryEfCompare2()
+        {
+            using (var db = new TestDbContext())
+            {
+                Assert.AreEqual(2, db.Products.Count());
+                var products = db.Products.ToList();
+                Assert.AreEqual(2, products.Count());
+                Assert.AreEqual(1, products.First().ID);
+                Assert.AreEqual(99, products.First().Price?.Amount);
+            }
+        }
     }
 }

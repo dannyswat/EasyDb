@@ -14,7 +14,7 @@ namespace EasyDb.UnitTest.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=localhost; Database=EasyDb; Trusted_Connection=True;");
+            optionsBuilder.UseSqlServer("Server=localhost\\SQL2014; Database=EasyDb; Trusted_Connection=True;");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
